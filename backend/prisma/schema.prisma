@@ -1,0 +1,525 @@
+// Prisma Schema for MediFlow — Multi-Tenant SaaS Medical Billing Platform
+// Database: MongoDB Atlas
+// Provider: mongodb
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  PLATFORM_ADMIN
+  ORG_ADMIN
+  BILLING_MANAGER
+  BILLING_SPECIALIST
+  PROVIDER
+  VIEWER
+}
+
+enum ClaimStatus {
+  DRAFT
+  SUBMITTED
+  ACCEPTED
+  REJECTED
+  PAID
+  DENIED
+  APPEALED
+  CLOSED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum PaymentType {
+  INSURANCE
+  PATIENT
+  ADJUSTMENT
+  REFUND
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MODELS
+// ─────────────────────────────────────────────────────────────────────────────
+
+// [MODEL 1: Organization]
+model Organization {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  slug      String   @unique
+  address   String?
+  phone     String?
+  email     String?
+  taxId     String?
+  settings  Json?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Tenant-scoped relations
+  users             User[]
+  patients          Patient[]
+  providers         Provider[]
+  insurancePolicies InsurancePolicy[]
+  appointments      Appointment[]
+  encounters        Encounter[]
+  claims            Claim[]
+  payments          Payment[]
+  denials           Denial[]
+  tasks             Task[]
+  documents         Document[]
+  notifications     Notification[]
+  invoices          Invoice[]
+  auditLogs         AuditLog[]
+
+  @@map("organizations")
+}
+
+// [MODEL 2: User]
+model User {
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  organizationId String    @db.ObjectId
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  name           String
+  email          String
+  passwordHash   String
+  role           UserRole  @default(BILLING_SPECIALIST)
+  phone          String?
+  isActive       Boolean   @default(true)
+  lastLoginAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relations
+  createdTasks      Task[]         @relation("TaskCreator")
+  assignedTasks     Task[]         @relation("TaskAssignee")
+  assignedDenials   Denial[]       @relation("DenialAssignee")
+  uploadedDocuments Document[]     @relation("DocumentUploader")
+  notifications     Notification[] @relation("NotificationRecipient")
+  auditLogs         AuditLog[]     @relation("AuditUser")
+
+  @@unique([organizationId, email])
+  @@map("users")
+}
+
+// [MODEL 3: Patient]
+model Patient {
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  organizationId   String   @db.ObjectId
+  organization     Organization @relation(fields: [organizationId], references: [id])
+  patientId        String   // Medical Record Number (MRN)
+  firstName        String
+  lastName         String
+  dob              DateTime
+  gender           String?
+  phone            String
+  email            String?
+  address          Json?
+  emergencyContact Json?
+  notes            String?
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relations
+  insurancePolicies InsurancePolicy[]
+  appointments      Appointment[]
+  encounters        Encounter[]
+  claims            Claim[]
+  payments          Payment[]
+  tasks             Task[]
+  invoices          Invoice[]         @relation("InvoicePatient")
+
+  @@unique([organizationId, patientId])
+  @@index([organizationId, lastName])
+  @@index([organizationId, phone])
+  @@map("patients")
+}
+
+// [MODEL 4: InsurancePolicy]
+model InsurancePolicy {
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  organizationId String    @db.ObjectId
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  patientId      String    @db.ObjectId
+  patient        Patient   @relation(fields: [patientId], references: [id])
+  insurerName    String
+  memberId       String
+  groupNumber    String?
+  policyNumber   String?
+  effectiveDate  DateTime
+  expirationDate DateTime?
+  relationship   String?
+  copay          Float?
+  deductible     Float?
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relations
+  claims Claim[]
+
+  @@index([organizationId, memberId])
+  @@map("insurance_policies")
+}
+
+// [MODEL 5: Provider]
+model Provider {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  organizationId String   @db.ObjectId
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  npi            String?
+  firstName      String
+  lastName       String
+  specialty      String?
+  phone          String?
+  email          String?
+  address        Json?
+  taxId          String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  appointments Appointment[]
+  encounters   Encounter[]
+  claims       Claim[]
+
+  @@index([organizationId, npi])
+  @@map("providers")
+}
+
+// [MODEL 6: Appointment]
+model Appointment {
+  id             String            @id @default(auto()) @map("_id") @db.ObjectId
+  organizationId String            @db.ObjectId
+  organization   Organization      @relation(fields: [organizationId], references: [id])
+  patientId      String            @db.ObjectId
+  patient        Patient           @relation(fields: [patientId], references: [id])
+  providerId     String            @db.ObjectId
+  provider       Provider          @relation(fields: [providerId], references: [id])
+  date           DateTime
+  durationMins   Int               @default(30)
+  status         AppointmentStatus @default(SCHEDULED)
+  type           String?
+  notes          String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  // Relations
+  encounters Encounter[]
+
+  @@index([organizationId, date])
+  @@index([providerId, date])
+  @@map("appointments")
+}
+
+// [MODEL 7: Encounter]
+model Encounter {
+  id             String       @id @default(auto()) @map("_id") @db.ObjectId
+  organizationId String       @db.ObjectId
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  patientId      String       @db.ObjectId
+  patient        Patient      @relation(fields: [patientId], references: [id])
+  providerId     String       @db.ObjectId
+  provider       Provider     @relation(fields: [providerId], references: [id])
+  appointmentId  String?      @db.ObjectId
+  appointment    Appointment? @relation(fields: [appointmentId], references: [id])
+  dateOfService  DateTime
+  visitType      String?
+  notes          String?
+  status         String       @default("COMPLETED")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  // Relations
+  claims Claim[]
+
+  @@index([organizationId, dateOfService])
+  @@map("encounters")
+}
+
+// [MODEL 8: DiagnosisCode] (Global Reference)
+model DiagnosisCode {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  code        String   @unique
+  description String
+  category    String?
+  isActive    Boolean  @default(true)
+
+  // Relations
+  claimDiagnoses ClaimDiagnosis[]
+
+  @@map("diagnosis_codes")
+}
+
+// [MODEL 9: ProcedureCode] (Global Reference)
+model ProcedureCode {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  code          String   @unique
+  description   String
+  category      String?
+  defaultCharge Float?
+  isActive      Boolean  @default(true)
+
+  // Relations
+  claimProcedures ClaimProcedure[]
+
+  @@map("procedure_codes")
+}
+
+// [MODEL 10: Claim]
+model Claim {
+  id               String       @id @default(auto()) @map("_id") @db.ObjectId
+  organizationId   String       @db.ObjectId
+  organization     Organization @relation(fields: [organizationId], references: [id])
+  claimNumber      String       @unique
+  patientId        String       @db.ObjectId
+  patient          Patient      @relation(fields: [patientId], references: [id])
+  insuranceId      String?      @db.ObjectId
+  insurance        InsurancePolicy? @relation(fields: [insuranceId], references: [id])
+  providerId       String       @db.ObjectId
+  provider         Provider     @relation(fields: [providerId], references: [id])
+  encounterId      String?      @db.ObjectId
+  encounter        Encounter?   @relation(fields: [encounterId], references: [id])
+  serviceDate      DateTime
+  status           ClaimStatus  @default(DRAFT)
+  totalCharges     Float        @default(0)
+  totalPaid        Float        @default(0)
+  totalAdjustments Float        @default(0)
+  balance          Float        @default(0)
+  submittedDate    DateTime?
+  approvedDate     DateTime?
+  notes            String?
+  internalNotes    String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  // Relations
+  diagnoses  ClaimDiagnosis[]
+  procedures ClaimProcedure[]
+  payments   Payment[]
+  denials    Denial[]
+  tasks      Task[]
+
+  @@index([organizationId, status])
+  @@index([organizationId, serviceDate])
+  @@index([patientId])
+  @@map("claims")
+}
+
+// [MODEL 11: ClaimDiagnosis]
+model ClaimDiagnosis {
+  id              String        @id @default(auto()) @map("_id") @db.ObjectId
+  claimId         String        @db.ObjectId
+  claim           Claim         @relation(fields: [claimId], references: [id])
+  diagnosisCodeId String        @db.ObjectId
+  diagnosisCode   DiagnosisCode @relation(fields: [diagnosisCodeId], references: [id])
+  pointer         String
+  isPrimary       Boolean       @default(false)
+
+  @@index([claimId])
+  @@map("claim_diagnoses")
+}
+
+// [MODEL 12: ClaimProcedure]
+model ClaimProcedure {
+  id                String        @id @default(auto()) @map("_id") @db.ObjectId
+  claimId           String        @db.ObjectId
+  claim             Claim         @relation(fields: [claimId], references: [id])
+  procedureCodeId   String        @db.ObjectId
+  procedureCode     ProcedureCode @relation(fields: [procedureCodeId], references: [id])
+  modifiers         String[]
+  quantity          Int           @default(1)
+  chargeAmount      Float
+  diagnosisPointers String[]
+  notes             String?
+
+  @@index([claimId])
+  @@map("claim_procedures")
+}
+
+// [MODEL 13: Payment]
+model Payment {
+  id              String       @id @default(auto()) @map("_id") @db.ObjectId
+  organizationId  String       @db.ObjectId
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  claimId         String?      @db.ObjectId
+  claim           Claim?       @relation(fields: [claimId], references: [id])
+  patientId       String?      @db.ObjectId
+  patient         Patient?     @relation(fields: [patientId], references: [id])
+  amount          Float
+  paymentDate     DateTime     @default(now())
+  paymentType     PaymentType
+  referenceNumber String?
+  notes           String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([organizationId, paymentDate])
+  @@index([claimId])
+  @@map("payments")
+}
+
+// [MODEL 14: Denial]
+model Denial {
+  id              String       @id @default(auto()) @map("_id") @db.ObjectId
+  organizationId  String       @db.ObjectId
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  claimId         String       @db.ObjectId
+  claim           Claim        @relation(fields: [claimId], references: [id])
+  denialDate      DateTime     @default(now())
+  reasonCode      String?
+  reasonText      String
+  deniedAmount    Float
+  assignedToId    String?      @db.ObjectId
+  assignedTo      User?        @relation("DenialAssignee", fields: [assignedToId], references: [id])
+  followUpDate    DateTime?
+  status          String       @default("OPEN")
+  resolutionNotes String?
+  resolvedAt      DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([organizationId, status])
+  @@index([assignedToId])
+  @@map("denials")
+}
+
+// [MODEL 15: Task]
+model Task {
+  id             String       @id @default(auto()) @map("_id") @db.ObjectId
+  organizationId String       @db.ObjectId
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  title          String
+  description    String?
+  priority       TaskPriority @default(MEDIUM)
+  status         TaskStatus   @default(PENDING)
+  dueDate        DateTime?
+  completedAt    DateTime?
+  createdById    String       @db.ObjectId
+  createdBy      User         @relation("TaskCreator", fields: [createdById], references: [id])
+  assignedToId   String?      @db.ObjectId
+  assignedTo     User?        @relation("TaskAssignee", fields: [assignedToId], references: [id])
+  claimId        String?      @db.ObjectId
+  claim          Claim?       @relation(fields: [claimId], references: [id])
+  patientId      String?      @db.ObjectId
+  patient        Patient?     @relation(fields: [patientId], references: [id])
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId, status])
+  @@index([assignedToId, status])
+  @@index([dueDate])
+  @@map("tasks")
+}
+
+// [MODEL 16: Document]
+model Document {
+  id             String       @id @default(auto()) @map("_id") @db.ObjectId
+  organizationId String       @db.ObjectId
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  fileName       String
+  fileUrl        String
+  fileType       String
+  fileSize       Int
+  entityType     String
+  entityId       String       @db.ObjectId
+  uploadedById   String       @db.ObjectId
+  uploadedBy     User         @relation("DocumentUploader", fields: [uploadedById], references: [id])
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId, entityType, entityId])
+  @@map("documents")
+}
+
+// [MODEL 17: Notification]
+model Notification {
+  id             String       @id @default(auto()) @map("_id") @db.ObjectId
+  organizationId String       @db.ObjectId
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  userId         String       @db.ObjectId
+  user           User         @relation("NotificationRecipient", fields: [userId], references: [id])
+  title          String
+  message        String
+  type           String
+  isRead         Boolean      @default(false)
+  link           String?
+  createdAt      DateTime     @default(now())
+
+  @@index([userId, isRead])
+  @@index([organizationId, createdAt])
+  @@map("notifications")
+}
+
+// [MODEL 18: Invoice]
+model Invoice {
+  id             String       @id @default(auto()) @map("_id") @db.ObjectId
+  organizationId String       @db.ObjectId
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  invoiceNumber  String       @unique
+  patientId      String       @db.ObjectId
+  patient        Patient      @relation("InvoicePatient", fields: [patientId], references: [id])
+  totalAmount    Float
+  paidAmount     Float        @default(0)
+  balance        Float
+  status         String       @default("UNPAID")
+  issueDate      DateTime     @default(now())
+  dueDate        DateTime
+  items          Json
+  notes          String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId, status])
+  @@index([patientId])
+  @@map("invoices")
+}
+
+// [MODEL 19: AuditLog]
+model AuditLog {
+  id             String       @id @default(auto()) @map("_id") @db.ObjectId
+  organizationId String       @db.ObjectId
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  userId         String       @db.ObjectId
+  user           User         @relation("AuditUser", fields: [userId], references: [id])
+  action         String
+  entity         String
+  entityId       String       @db.ObjectId
+  beforeValues   String?
+  afterValues    String?
+  ipAddress      String?
+  userAgent      String?
+  metadata       Json?
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId, createdAt])
+  @@index([userId])
+  @@index([entity, entityId])
+  @@map("audit_logs")
+}
