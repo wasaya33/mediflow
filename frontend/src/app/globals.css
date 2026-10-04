@@ -1,0 +1,140 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 40% 98%; /* #f8fafc - Light Slate */
+    --foreground: 222 47% 11%; /* #0f172a - Dark Slate */
+
+    --card: 0 0% 100%; /* Pure White */
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 243 75% 59%; /* #4f46e5 - Indigo */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 173 80% 40%; /* #14b8a6 - Teal */
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215 16% 47%; /* #475569 - Slate-600 */
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222 47% 11%;
+
+    --destructive: 347 77% 50%; /* #e11d48 - Rose */
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 160 84% 39%; /* #059669 - Emerald */
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%; /* #f59e0b - Amber */
+    --warning-foreground: 222 47% 11%;
+
+    --error: 347 77% 50%;
+    --error-foreground: 0 0% 100%;
+
+    --border: 214 32% 91%; /* #e2e8f0 - Slate-200 */
+    --input: 214 32% 91%;
+    --ring: 243 75% 59%;
+
+    --radius: 0.625rem;
+  }
+
+  .dark {
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
+
+    --card: 224 71% 4%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 224 71% 4%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 239 84% 67%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 173 80% 40%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 217 33% 17%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --success: 160 84% 39%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 222 47% 11%;
+
+    --error: 347 77% 50%;
+    --error-foreground: 0 0% 100%;
+
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 243 75% 59%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer utilities {
+  .gradient-primary {
+    background: linear-gradient(135deg, #4f46e5 0%, #6366f1 50%, #14b8a6 100%);
+  }
+
+  .gradient-primary-hover {
+    background: linear-gradient(135deg, #4338ca 0%, #4f46e5 50%, #0d9488 100%);
+  }
+
+  .gradient-medical {
+    background: linear-gradient(135deg, #312e81 0%, #4338ca 40%, #1e1b4b 100%);
+  }
+
+  .gradient-teal {
+    background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
+  }
+
+  .gradient-subtle {
+    background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
+  }
+
+  .text-gradient {
+    background: linear-gradient(135deg, #4f46e5 0%, #6366f1 40%, #0d9488 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .text-gradient-teal {
+    background: linear-gradient(135deg, #14b8a6 0%, #059669 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .glass-card {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+  }
+
+  .glass-card-dark {
+    background: rgba(15, 23, 42, 0.75);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+}
