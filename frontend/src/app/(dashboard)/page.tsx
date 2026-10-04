@@ -4,21 +4,23 @@ import React from "react";
 import Link from "next/link";
 import {
   Users,
-  Receipt,
-  DollarSign,
-  CheckSquare,
+  Stethoscope,
+  Calendar,
+  FileText,
+  Clock,
   ArrowUpRight,
   UserPlus,
-  FilePlus2,
-  CreditCard,
   Building,
   CheckCircle2,
-  Clock,
-  AlertCircle,
-  FileCheck,
+  Layers,
+  ChevronRight,
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { useCurrentUser } from "@/hooks/useAuth";
+import { usePatientStats } from "@/hooks/usePatients";
+import { useProviderStats } from "@/hooks/useProviders";
+import { useUpcomingAppointments, useAppointmentStats } from "@/hooks/useAppointments";
+import { useEncounters, useEncounterStats } from "@/hooks/useEncounters";
 import { MetricCard } from "@/components/dashboard/MetricCard";
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -28,114 +30,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-
-interface MockClaim {
-  id: string;
-  patient: string;
-  status: "PAID" | "ADJUDICATING" | "SUBMITTED" | "DENIED";
-  amount: string;
-  date: string;
-}
-
-interface MockActivity {
-  id: string;
-  title: string;
-  description: string;
-  time: string;
-  icon: React.ComponentType<{ className?: string }>;
-  iconBg: string;
-}
-
-const mockClaims: MockClaim[] = [
-  {
-    id: "CLM-9082",
-    patient: "Eleanor Vance",
-    status: "PAID",
-    amount: "$1,450.00",
-    date: "Today, 10:14 AM",
-  },
-  {
-    id: "CLM-9081",
-    patient: "Marcus Sterling",
-    status: "ADJUDICATING",
-    amount: "$820.00",
-    date: "Today, 09:28 AM",
-  },
-  {
-    id: "CLM-9080",
-    patient: "Clara Oswald",
-    status: "SUBMITTED",
-    amount: "$2,100.00",
-    date: "Yesterday",
-  },
-  {
-    id: "CLM-9079",
-    patient: "David Tennant",
-    status: "PAID",
-    amount: "$540.00",
-    date: "Oct 2, 2026",
-  },
-  {
-    id: "CLM-9078",
-    patient: "Rose Tyler",
-    status: "DENIED",
-    amount: "$320.00",
-    date: "Oct 1, 2026",
-  },
-];
-
-const mockActivities: MockActivity[] = [
-  {
-    id: "act-1",
-    title: "Claim #CLM-9082 Adjudicated",
-    description: "Paid in full by Blue Cross Blue Shield ($1,450.00)",
-    time: "12m ago",
-    icon: CheckCircle2,
-    iconBg: "bg-emerald-100 text-emerald-700",
-  },
-  {
-    id: "act-2",
-    title: "Copay Posted",
-    description: "Patient payment received for Eleanor Vance ($45.00)",
-    time: "48m ago",
-    icon: CreditCard,
-    iconBg: "bg-indigo-100 text-indigo-700",
-  },
-  {
-    id: "act-3",
-    title: "Batch 837P Submitted",
-    description: "14 outpatient encounters delivered to Availity",
-    time: "2h ago",
-    icon: FileCheck,
-    iconBg: "bg-teal-100 text-teal-700",
-  },
-  {
-    id: "act-4",
-    title: "Payer Denial Logged",
-    description: "Claim #CLM-9078 flagged: CPT modifier invalid",
-    time: "3h ago",
-    icon: AlertCircle,
-    iconBg: "bg-rose-100 text-rose-700",
-  },
-  {
-    id: "act-5",
-    title: "Pre-Authorization Verified",
-    description: "MRI Lumbar Spine cleared for Marcus Sterling",
-    time: "5h ago",
-    icon: Clock,
-    iconBg: "bg-amber-100 text-amber-700",
-  },
-];
 
 export default function DashboardPage() {
   const { user: localUser } = useAuthStore();
@@ -144,34 +39,17 @@ export default function DashboardPage() {
   const user = userProfile || localUser;
   const firstName = user?.name ? user.name.split(" ")[0] : "Practitioner";
 
-  const renderStatusBadge = (status: MockClaim["status"]) => {
-    switch (status) {
-      case "PAID":
-        return (
-          <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100">
-            Paid
-          </Badge>
-        );
-      case "ADJUDICATING":
-        return (
-          <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100">
-            In Review
-          </Badge>
-        );
-      case "SUBMITTED":
-        return (
-          <Badge className="bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100">
-            Submitted
-          </Badge>
-        );
-      case "DENIED":
-        return (
-          <Badge className="bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100">
-            Denied
-          </Badge>
-        );
-    }
-  };
+  // Real API hooks for dashboard widgets
+  const { data: patientStats } = usePatientStats();
+  const { data: providerStats } = useProviderStats();
+  const { data: appointmentStats } = useAppointmentStats();
+  const { data: encounterStats } = useEncounterStats();
+  const { data: upcomingAppointments = [], isLoading: isUpcomingLoading } =
+    useUpcomingAppointments(5);
+  const { data: recentEncountersData, isLoading: isEncountersLoading } =
+    useEncounters({ limit: 5 });
+
+  const recentEncounters = recentEncountersData?.data || [];
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-300">
@@ -183,228 +61,329 @@ export default function DashboardPage() {
             <span>{user?.organization?.name || "Active Workspace"}</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
-            Dashboard
+            Clinical Operations & Billing Hub
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Welcome back, <span className="font-medium text-slate-800">{firstName}</span>. Here is your medical billing performance overview for today.
+            Welcome back, <span className="font-semibold text-slate-800">{firstName}</span>.
+            Here is your live multi-tenant overview across patients, providers, and clinical visits.
           </p>
         </div>
 
         {/* Global Action Shortcut Buttons */}
         <div className="flex items-center gap-2.5">
           <Link
-            href="/reports"
+            href="/appointments"
             className={cn(
               buttonVariants({ variant: "outline", size: "sm" }),
               "border-slate-200 hover:bg-slate-100 text-slate-700 shadow-2xs inline-flex items-center gap-1.5"
             )}
           >
-            <ArrowUpRight className="h-4 w-4 text-slate-500" />
-            <span>View Reports</span>
+            <Calendar className="h-4 w-4 text-indigo-600" />
+            <span>Schedule Visit</span>
           </Link>
           <Link
-            href="/claims"
+            href="/patients/new"
             className={cn(
               buttonVariants({ size: "sm" }),
               "gradient-primary text-white hover:opacity-95 shadow-xs border-0 inline-flex items-center gap-1.5"
             )}
           >
-            <FilePlus2 className="h-4 w-4" />
-            <span>Create Claim</span>
+            <UserPlus className="h-4 w-4" />
+            <span>Add Patient</span>
           </Link>
         </div>
       </div>
 
-      {/* 4 Metric Cards Grid: 2 cols on mobile, 4 cols on desktop */}
+      {/* 4 Metric Cards Grid with live API stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
         <MetricCard
           title="Total Patients"
-          value="1,428"
+          value={patientStats ? String(patientStats.total) : "—"}
           icon={Users}
           colorVariant="indigo"
-          trend={{ value: "+12%", isPositive: true, label: "from last month" }}
+          trend={{
+            value: patientStats?.newThisMonth ? `+${patientStats.newThisMonth}` : "0",
+            isPositive: true,
+            label: "new this month",
+          }}
         />
         <MetricCard
-          title="Active Claims"
-          value="164"
-          icon={Receipt}
+          title="Active Clinicians"
+          value={providerStats ? String(providerStats.active) : "—"}
+          icon={Stethoscope}
           colorVariant="teal"
-          trend={{ value: "+8%", isPositive: true, label: "vs last week" }}
+          trend={{
+            value: providerStats ? `${providerStats.total} total` : "—",
+            isPositive: true,
+            label: "in registry",
+          }}
         />
         <MetricCard
-          title="Total Revenue"
-          value="$248,650"
-          icon={DollarSign}
+          title="Scheduled Visits"
+          value={appointmentStats ? String(appointmentStats.pending) : "—"}
+          icon={Calendar}
           colorVariant="emerald"
-          trend={{ value: "+18.4%", isPositive: true, label: "from last month" }}
+          trend={{
+            value: appointmentStats ? `${appointmentStats.today} today` : "—",
+            isPositive: true,
+            label: "appointments",
+          }}
         />
         <MetricCard
-          title="Pending Tasks"
-          value="19"
-          icon={CheckSquare}
+          title="Encounters This Month"
+          value={encounterStats ? String(encounterStats.thisMonth) : "—"}
+          icon={FileText}
           colorVariant="amber"
-          trend={{ value: "4 urgent", isPositive: false, label: "due today" }}
+          trend={{
+            value: encounterStats ? `${encounterStats.total} total` : "—",
+            isPositive: true,
+            label: "documented",
+          }}
         />
       </div>
 
-      {/* Two sections: Recent Claims Table (left) and Quick Actions / Activity (right) */}
+      {/* Main Grid: Upcoming Appointments (left 2 cols) & Clinical Encounters / Actions (right 1 col) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: Recent Claims Table (2 cols on lg) */}
-        <Card className="lg:col-span-2 border-slate-200/90 shadow-subtle rounded-xl overflow-hidden bg-white">
-          <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 pb-4">
-            <div>
-              <CardTitle className="text-base sm:text-lg font-bold text-slate-900">
-                Recent Claims
-              </CardTitle>
-              <CardDescription className="text-xs text-slate-500 mt-0.5">
-                Latest claims processed across insurance payers and clearinghouses
-              </CardDescription>
-            </div>
-            <Link
-              href="/claims"
-              className={cn(
-                buttonVariants({ variant: "ghost", size: "sm" }),
-                "text-xs font-semibold text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 inline-flex items-center gap-1"
-              )}
-            >
-              <span>View All</span>
-              <ArrowUpRight className="h-3.5 w-3.5" />
-            </Link>
-          </CardHeader>
+        {/* Left: Upcoming Appointments & Encounters (2 cols on lg) */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Upcoming Appointments Widget */}
+          <Card className="border-slate-200/90 shadow-subtle rounded-xl overflow-hidden bg-white">
+            <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-indigo-600" />
+                  Upcoming Patient Appointments
+                </CardTitle>
+                <CardDescription className="text-xs text-slate-500 mt-0.5">
+                  Next scheduled consultations and clinical visits
+                </CardDescription>
+              </div>
+              <Link
+                href="/appointments"
+                className={cn(
+                  buttonVariants({ variant: "ghost", size: "sm" }),
+                  "text-xs font-semibold text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 inline-flex items-center gap-1"
+                )}
+              >
+                <span>View All</span>
+                <ArrowUpRight className="h-3.5 w-3.5" />
+              </Link>
+            </CardHeader>
 
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader className="bg-slate-50/75">
-                  <TableRow className="border-slate-100">
-                    <TableHead className="text-xs font-semibold text-slate-600 pl-6">
-                      Claim #
-                    </TableHead>
-                    <TableHead className="text-xs font-semibold text-slate-600">
-                      Patient
-                    </TableHead>
-                    <TableHead className="text-xs font-semibold text-slate-600">
-                      Status
-                    </TableHead>
-                    <TableHead className="text-xs font-semibold text-slate-600">
-                      Amount
-                    </TableHead>
-                    <TableHead className="text-xs font-semibold text-slate-600 text-right pr-6">
-                      Date
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {mockClaims.map((claim) => (
-                    <TableRow
-                      key={claim.id}
-                      className="border-slate-100 hover:bg-slate-50/60 transition-colors"
-                    >
-                      <TableCell className="font-mono text-xs font-semibold text-indigo-600 pl-6">
-                        {claim.id}
-                      </TableCell>
-                      <TableCell className="font-medium text-slate-800 text-sm">
-                        {claim.patient}
-                      </TableCell>
-                      <TableCell>{renderStatusBadge(claim.status)}</TableCell>
-                      <TableCell className="font-semibold text-slate-900 text-sm">
-                        {claim.amount}
-                      </TableCell>
-                      <TableCell className="text-slate-500 text-xs text-right pr-6">
-                        {claim.date}
-                      </TableCell>
-                    </TableRow>
+            <CardContent className="p-0">
+              {isUpcomingLoading ? (
+                <div className="p-4 space-y-2">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="h-12 bg-slate-100 animate-pulse rounded-lg" />
                   ))}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
+                </div>
+              ) : upcomingAppointments.length === 0 ? (
+                <div className="p-8 text-center text-xs text-slate-400">
+                  No upcoming appointments scheduled.
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-100">
+                  {upcomingAppointments.map((apt) => {
+                    const aptDate = new Date(apt.date);
+                    return (
+                      <Link
+                        key={apt.id}
+                        href={`/appointments/${apt.id}`}
+                        className="flex items-center justify-between p-3.5 sm:px-5 hover:bg-slate-50/70 transition-colors group"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="h-9 w-9 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
+                            <Calendar className="h-4 w-4" />
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
+                              {apt.patient?.firstName} {apt.patient?.lastName}
+                            </p>
+                            <p className="text-[11px] text-slate-500">
+                              Dr. {apt.provider?.firstName} {apt.provider?.lastName} •{" "}
+                              {apt.type || "Check-up"}
+                            </p>
+                          </div>
+                        </div>
 
-        {/* Right: Quick Actions & Recent Activity (1 col on lg) */}
+                        <div className="text-right">
+                          <span className="text-xs font-semibold text-slate-800 font-mono">
+                            {aptDate.toLocaleTimeString("en-US", {
+                              hour: "numeric",
+                              minute: "2-digit",
+                            })}
+                          </span>
+                          <span className="block text-[11px] text-slate-400">
+                            {aptDate.toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                            })}
+                          </span>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Recent Encounters Widget */}
+          <Card className="border-slate-200/90 shadow-subtle rounded-xl overflow-hidden bg-white">
+            <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-teal-600" />
+                  Recent Clinical Encounters
+                </CardTitle>
+                <CardDescription className="text-xs text-slate-500 mt-0.5">
+                  Latest documented visits ready for charge entry and claim submission
+                </CardDescription>
+              </div>
+              <Link
+                href="/encounters"
+                className={cn(
+                  buttonVariants({ variant: "ghost", size: "sm" }),
+                  "text-xs font-semibold text-teal-700 hover:text-teal-800 hover:bg-teal-50 inline-flex items-center gap-1"
+                )}
+              >
+                <span>All Encounters</span>
+                <ArrowUpRight className="h-3.5 w-3.5" />
+              </Link>
+            </CardHeader>
+
+            <CardContent className="p-0">
+              {isEncountersLoading ? (
+                <div className="p-4 space-y-2">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="h-12 bg-slate-100 animate-pulse rounded-lg" />
+                  ))}
+                </div>
+              ) : recentEncounters.length === 0 ? (
+                <div className="p-8 text-center text-xs text-slate-400">
+                  No encounters documented yet.
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-100">
+                  {recentEncounters.map((enc) => (
+                    <Link
+                      key={enc.id}
+                      href={`/encounters/${enc.id}`}
+                      className="flex items-center justify-between p-3.5 sm:px-5 hover:bg-slate-50/70 transition-colors group"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="h-9 w-9 rounded-lg bg-teal-50 border border-teal-100 text-teal-600 flex items-center justify-center shrink-0">
+                          <CheckCircle2 className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-slate-900 group-hover:text-teal-700 transition-colors">
+                            {enc.patient?.firstName} {enc.patient?.lastName}
+                          </p>
+                          <p className="text-[11px] text-slate-500">
+                            {enc.visitType || "Office Visit"} • Dr. {enc.provider?.lastName}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs font-medium text-slate-600">
+                          DOS: {new Date(enc.dateOfService).toLocaleDateString()}
+                        </span>
+                        <ChevronRight className="h-4 w-4 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right: Quick Actions & Clinical Provider Breakdown (1 col on lg) */}
         <div className="space-y-6">
           {/* Quick Actions Card */}
           <Card className="border-slate-200/90 shadow-subtle rounded-xl bg-white">
             <CardHeader className="pb-3 border-b border-slate-100">
               <CardTitle className="text-sm sm:text-base font-bold text-slate-900">
-                Quick Actions
+                Quick Shortcuts
               </CardTitle>
               <CardDescription className="text-xs text-slate-500">
-                Instant shortcuts for high-frequency clinical billing tasks
+                Direct actions for clinical workflows
               </CardDescription>
             </CardHeader>
             <CardContent className="p-4 space-y-2.5">
               <Link
-                href="/patients"
+                href="/patients/new"
                 className={cn(
                   buttonVariants({ variant: "outline" }),
                   "w-full justify-start text-xs font-medium text-slate-700 hover:text-indigo-700 hover:bg-indigo-50/60 hover:border-indigo-200 transition-colors h-10 inline-flex items-center"
                 )}
               >
                 <UserPlus className="h-4 w-4 mr-2.5 text-indigo-600" />
-                <span>New Patient</span>
+                <span>Register New Patient</span>
               </Link>
               <Link
-                href="/claims"
+                href="/appointments"
                 className={cn(
                   buttonVariants({ variant: "outline" }),
                   "w-full justify-start text-xs font-medium text-slate-700 hover:text-teal-700 hover:bg-teal-50/60 hover:border-teal-200 transition-colors h-10 inline-flex items-center"
                 )}
               >
-                <FilePlus2 className="h-4 w-4 mr-2.5 text-teal-600" />
-                <span>New Claim</span>
+                <Calendar className="h-4 w-4 mr-2.5 text-teal-600" />
+                <span>Schedule Appointment</span>
               </Link>
               <Link
-                href="/payments"
+                href="/encounters"
                 className={cn(
                   buttonVariants({ variant: "outline" }),
-                  "w-full justify-start text-xs font-medium text-slate-700 hover:text-emerald-700 hover:bg-emerald-50/60 hover:border-emerald-200 transition-colors h-10 inline-flex items-center"
+                  "w-full justify-start text-xs font-medium text-slate-700 hover:text-teal-700 hover:bg-teal-50/60 hover:border-teal-200 transition-colors h-10 inline-flex items-center"
                 )}
               >
-                <CreditCard className="h-4 w-4 mr-2.5 text-emerald-600" />
-                <span>Post Payment</span>
+                <FileText className="h-4 w-4 mr-2.5 text-teal-600" />
+                <span>Document Encounter</span>
+              </Link>
+              <Link
+                href="/providers"
+                className={cn(
+                  buttonVariants({ variant: "outline" }),
+                  "w-full justify-start text-xs font-medium text-slate-700 hover:text-slate-900 hover:bg-slate-100 transition-colors h-10 inline-flex items-center"
+                )}
+              >
+                <Stethoscope className="h-4 w-4 mr-2.5 text-slate-600" />
+                <span>Manage Healthcare Providers</span>
               </Link>
             </CardContent>
           </Card>
 
-          {/* Recent Activity Card */}
+          {/* Provider Specialties Breakdown */}
           <Card className="border-slate-200/90 shadow-subtle rounded-xl bg-white">
             <CardHeader className="pb-3 border-b border-slate-100">
-              <CardTitle className="text-sm sm:text-base font-bold text-slate-900">
-                Recent Activity
+              <CardTitle className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+                <Layers className="h-4 w-4 text-indigo-600" />
+                Practitioner Registry
               </CardTitle>
               <CardDescription className="text-xs text-slate-500">
-                Live clearinghouse and tenant audit feed
+                Active clinician specialty coverage
               </CardDescription>
             </CardHeader>
             <CardContent className="p-4">
-              <div className="space-y-4">
-                {mockActivities.map((act) => {
-                  const Icon = act.icon;
-                  return (
-                    <div key={act.id} className="flex items-start gap-3">
-                      <div
-                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${act.iconBg}`}
-                      >
-                        <Icon className="h-4 w-4" />
-                      </div>
-                      <div className="space-y-0.5 overflow-hidden flex-1">
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="text-xs font-semibold text-slate-800 truncate">
-                            {act.title}
-                          </p>
-                          <span className="text-[10px] text-slate-400 shrink-0">
-                            {act.time}
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-slate-500 leading-snug truncate">
-                          {act.description}
-                        </p>
-                      </div>
+              {providerStats?.bySpecialty &&
+              Object.keys(providerStats.bySpecialty).length > 0 ? (
+                <div className="space-y-2.5">
+                  {Object.entries(providerStats.bySpecialty).map(([spec, count]) => (
+                    <div key={spec} className="flex items-center justify-between text-xs">
+                      <span className="text-slate-700 font-medium">{spec}</span>
+                      <span className="font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200/60">
+                        {count} {count === 1 ? "doctor" : "doctors"}
+                      </span>
                     </div>
-                  );
-                })}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-6 text-xs text-slate-400">
+                  No specialty data recorded yet.
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

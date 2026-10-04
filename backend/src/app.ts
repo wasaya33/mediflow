@@ -25,6 +25,11 @@ import { NotFoundError } from "./shared/errors/AppError";
 import authRoutes from "./modules/auth/routes";
 import organizationRoutes from "./modules/organizations/routes";
 import userRoutes from "./modules/users/routes";
+import patientRoutes from "./modules/patients/routes";
+import insuranceRoutes from "./modules/insurance/routes";
+import providerRoutes from "./modules/providers/routes";
+import appointmentRoutes from "./modules/appointments/routes";
+import encounterRoutes from "./modules/encounters/routes";
 
 const app = express();
 
@@ -135,6 +140,11 @@ app.get("/", (_req: Request, res: Response) => {
 app.use(`${API_PREFIX}/auth`, authRoutes);
 app.use(`${API_PREFIX}/organizations`, organizationRoutes);
 app.use(`${API_PREFIX}/users`, userRoutes);
+app.use(`${API_PREFIX}/patients`, patientRoutes);
+app.use(`${API_PREFIX}/insurance`, insuranceRoutes);
+app.use(`${API_PREFIX}/providers`, providerRoutes);
+app.use(`${API_PREFIX}/appointments`, appointmentRoutes);
+app.use(`${API_PREFIX}/encounters`, encounterRoutes);
 
 // ---------------------------------------------------------------------------
 // 404 Handler
