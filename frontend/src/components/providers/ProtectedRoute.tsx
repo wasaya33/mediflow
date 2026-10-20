@@ -9,6 +9,9 @@ interface ProtectedRouteProps {
   children: React.ReactNode;
 }
 
+// Development bypass switch: set to false to re-enable strict route protection
+const BYPASS_AUTH = true;
+
 /**
  * ProtectedRoute component enforces authentication before rendering dashboard contents.
  * If unauthenticated or token is missing, user is redirected to /login.
@@ -24,12 +27,17 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   }, []);
 
   useEffect(() => {
+    if (BYPASS_AUTH) return;
     if (hasMounted && !isLoading) {
       if (!token || !isAuthenticated) {
         router.replace("/login");
       }
     }
   }, [hasMounted, isLoading, token, isAuthenticated, router]);
+
+  if (BYPASS_AUTH) {
+    return <>{children}</>;
+  }
 
   // Prevent hydration mismatch and show loading state while rehydrating Zustand
   if (!hasMounted || isLoading) {

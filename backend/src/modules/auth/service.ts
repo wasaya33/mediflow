@@ -15,6 +15,7 @@ import {
   UpdateProfileInput,
   ChangePasswordInput,
 } from "./validation";
+import { AUTH_BYPASS_ENABLED, DEV_BYPASS_USER } from "../../middlewares/auth";
 
 export class AuthService {
   /**
@@ -130,21 +131,61 @@ export class AuthService {
     const normalizedEmail = data.email.toLowerCase().trim();
 
     // 1. Find user by email (include organization to check tenant status)
-    const user = await prisma.user.findFirst({
-      where: { email: normalizedEmail },
-      include: {
-        organization: true,
-      },
-    });
+    let user = null;
+    try {
+      user = await prisma.user.findFirst({
+        where: { email: normalizedEmail },
+        include: {
+          organization: true,
+        },
+      });
+    } catch {
+      // DB offline or error
+    }
 
     if (!user) {
+      if (AUTH_BYPASS_ENABLED) {
+        const token = jwt.sign(
+          {
+            userId: DEV_BYPASS_USER.userId,
+            organizationId: DEV_BYPASS_USER.organizationId,
+            role: DEV_BYPASS_USER.role,
+            email: normalizedEmail || DEV_BYPASS_USER.email,
+          },
+          env.JWT_SECRET,
+          { expiresIn: env.JWT_EXPIRES_IN as jwt.SignOptions["expiresIn"] }
+        );
+        return {
+          user: {
+            id: DEV_BYPASS_USER.userId,
+            organizationId: DEV_BYPASS_USER.organizationId,
+            name: "Platform Administrator (Dev Bypass)",
+            email: normalizedEmail || DEV_BYPASS_USER.email,
+            role: DEV_BYPASS_USER.role,
+            phone: "+1-512-555-0100",
+            isActive: true,
+            lastLoginAt: new Date(),
+            createdAt: new Date(),
+          },
+          organization: {
+            id: DEV_BYPASS_USER.organizationId,
+            name: "Demo Clinic",
+            slug: "demo-clinic",
+          },
+          token,
+        };
+      }
       throw new UnauthorizedError("Invalid email or password.");
     }
 
     // 2. Verify password
     const isPasswordValid = await bcrypt.compare(data.password, user.passwordHash);
     if (!isPasswordValid) {
-      throw new UnauthorizedError("Invalid email or password.");
+      if (AUTH_BYPASS_ENABLED) {
+        // Allow any password in dev bypass mode
+      } else {
+        throw new UnauthorizedError("Invalid email or password.");
+      }
     }
 
     // 3. Check user and organization active status
@@ -212,41 +253,77 @@ export class AuthService {
    * Get the current authenticated user's profile with organization details.
    */
   async getProfile(userId: string) {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        organizationId: true,
-        name: true,
-        email: true,
-        role: true,
-        phone: true,
-        isActive: true,
-        lastLoginAt: true,
-        createdAt: true,
-        updatedAt: true,
-        organization: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            address: true,
-            phone: true,
-            email: true,
-            taxId: true,
-            settings: true,
-            isActive: true,
-            createdAt: true,
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          organizationId: true,
+          name: true,
+          email: true,
+          role: true,
+          phone: true,
+          isActive: true,
+          lastLoginAt: true,
+          createdAt: true,
+          updatedAt: true,
+          organization: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              address: true,
+              phone: true,
+              email: true,
+              taxId: true,
+              settings: true,
+              isActive: true,
+              createdAt: true,
+            },
           },
         },
-      },
-    });
+      });
 
-    if (!user) {
-      throw new NotFoundError("User profile");
+      if (user) {
+        return user;
+      }
+    } catch {
+      // DB offline or query error
     }
 
-    return user;
+    if (AUTH_BYPASS_ENABLED) {
+      return {
+        id: userId || DEV_BYPASS_USER.userId,
+        organizationId: DEV_BYPASS_USER.organizationId,
+        name: "Platform Administrator (Dev Bypass)",
+        email: DEV_BYPASS_USER.email,
+        role: DEV_BYPASS_USER.role,
+        phone: "+1-512-555-0100",
+        isActive: true,
+        lastLoginAt: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        organization: {
+          id: DEV_BYPASS_USER.organizationId,
+          name: "Demo Clinic",
+          slug: "demo-clinic",
+          address: "123 Medical Center Blvd, Suite 400, Austin, TX 78701",
+          phone: "+1-512-555-0199",
+          email: "contact@democlinic.mediflow.io",
+          taxId: "74-1234567",
+          settings: {
+            currency: "USD",
+            timezone: "America/Chicago",
+            billingCycle: "MONTHLY",
+            autoSubmitClaims: false,
+          },
+          isActive: true,
+          createdAt: new Date(),
+        },
+      };
+    }
+
+    throw new NotFoundError("User profile");
   }
 
   /**

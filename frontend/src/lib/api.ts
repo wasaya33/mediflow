@@ -26,6 +26,8 @@ api.interceptors.request.use(
   }
 );
 
+const BYPASS_AUTH = true;
+
 // Response interceptor to handle 401 Unauthorized errors
 api.interceptors.response.use(
   (response) => {
@@ -33,6 +35,10 @@ api.interceptors.response.use(
   },
   (error: AxiosError) => {
     if (error.response?.status === 401) {
+      if (BYPASS_AUTH) {
+        console.warn("[Auth Bypass] 401 received from backend - redirect skipped.");
+        return Promise.reject(error);
+      }
       const { logout } = useAuthStore.getState();
       logout();
 

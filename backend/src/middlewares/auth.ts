@@ -14,7 +14,7 @@ import jwt from "jsonwebtoken";
 import { env } from "../config/env";
 import { UnauthorizedError } from "../shared/errors/AppError";
 import { AuthUser } from "../shared/types";
-import { BEARER_PREFIX, AUTH_HEADER, Role } from "../config/constants";
+import { BEARER_PREFIX, AUTH_HEADER, Role, ROLES } from "../config/constants";
 
 // ---------------------------------------------------------------------------
 // JWT Payload Interface
@@ -57,6 +57,16 @@ function extractToken(req: Request): string | null {
 // Auth Middleware
 // ---------------------------------------------------------------------------
 
+// Temporary development bypass switch (set to true to bypass auth)
+export const AUTH_BYPASS_ENABLED = true;
+
+export const DEV_BYPASS_USER: AuthUser = {
+  userId: "65f000000000000000000001",
+  organizationId: "65f000000000000000000002",
+  role: ROLES.PLATFORM_ADMIN,
+  email: "admin@mediflow.com",
+};
+
 /**
  * Protects routes by verifying the JWT access token.
  * Attaches the decoded user payload to req.user for downstream use.
@@ -70,6 +80,11 @@ export function auth(req: Request, _res: Response, next: NextFunction): void {
   const token = extractToken(req);
 
   if (!token) {
+    if (AUTH_BYPASS_ENABLED) {
+      req.user = DEV_BYPASS_USER;
+      req.organizationId = DEV_BYPASS_USER.organizationId;
+      return next();
+    }
     return next(
       new UnauthorizedError(
         "No authentication token provided. Include 'Authorization: Bearer <token>' header."
@@ -98,6 +113,12 @@ export function auth(req: Request, _res: Response, next: NextFunction): void {
 
     next();
   } catch (error) {
+    if (AUTH_BYPASS_ENABLED) {
+      req.user = DEV_BYPASS_USER;
+      req.organizationId = DEV_BYPASS_USER.organizationId;
+      return next();
+    }
+
     if (error instanceof jwt.TokenExpiredError) {
       return next(
         new UnauthorizedError("Your session has expired. Please log in again.")

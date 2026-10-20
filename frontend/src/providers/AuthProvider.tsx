@@ -10,9 +10,12 @@ interface AuthProviderProps {
   children: React.ReactNode;
 }
 
+// Development bypass switch: set to false to re-enable strict session verification
+const BYPASS_AUTH = true;
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const { token, setUser, logout, setLoading } = useAuthStore();
-  const [isVerifying, setIsVerifying] = useState<boolean>(true);
+  const { token, user, setUser, setLoading } = useAuthStore();
+  const [isVerifying, setIsVerifying] = useState<boolean>(!BYPASS_AUTH);
 
   useEffect(() => {
     let isMounted = true;
@@ -35,8 +38,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setUser(response.data.data);
         }
       } catch {
-        if (isMounted) {
-          logout();
+        if (isMounted && !BYPASS_AUTH) {
+          useAuthStore.getState().logout();
         }
       } finally {
         if (isMounted) {
@@ -51,9 +54,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return () => {
       isMounted = false;
     };
-  }, [token, setUser, logout, setLoading]);
+  }, [token, setUser, setLoading]);
 
-  if (isVerifying) {
+  if (isVerifying && !BYPASS_AUTH) {
     return (
       <LoadingSpinner
         fullScreen
