@@ -17,7 +17,7 @@ import { useAuthStore } from "@/store/authStore";
 import { useLogout } from "@/hooks/useAuth";
 import { useSidebar } from "./SidebarContext";
 import { Breadcrumbs } from "./Breadcrumbs";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 export const Header: React.FC = () => {
   const router = useRouter();
@@ -82,19 +83,19 @@ export const Header: React.FC = () => {
         )}
 
         {/* Notifications Icon with Badge */}
-        <Link href="/notifications">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="relative h-9 w-9 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-full"
-            aria-label="Notifications - 3 unread"
-          >
-            <Bell className="h-4 w-4" />
-            <span className="absolute top-1.5 right-1.5 flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-teal-500" />
-            </span>
-          </Button>
+        <Link
+          href="/notifications"
+          className={cn(
+            buttonVariants({ variant: "ghost", size: "icon" }),
+            "relative h-9 w-9 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-full inline-flex items-center justify-center"
+          )}
+          aria-label="Notifications - 3 unread"
+        >
+          <Bell className="h-4 w-4" />
+          <span className="absolute top-1.5 right-1.5 flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-teal-500" />
+          </span>
         </Link>
 
         {/* User Avatar Dropdown */}
@@ -180,22 +181,23 @@ export const Header: React.FC = () => {
           </DropdownMenu>
         ) : (
           <div className="flex items-center gap-2">
-            <Link href="/login">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-slate-700 hover:text-slate-900"
-              >
-                Sign In
-              </Button>
+            <Link
+              href="/login"
+              className={cn(
+                buttonVariants({ variant: "ghost", size: "sm" }),
+                "text-slate-700 hover:text-slate-900 inline-flex items-center"
+              )}
+            >
+              Sign In
             </Link>
-            <Link href="/register">
-              <Button
-                size="sm"
-                className="gradient-primary text-white border-0 shadow-sm"
-              >
-                Get Started
-              </Button>
+            <Link
+              href="/register"
+              className={cn(
+                buttonVariants({ size: "sm" }),
+                "gradient-primary text-white border-0 shadow-sm inline-flex items-center"
+              )}
+            >
+              Get Started
             </Link>
           </div>
         )}
