@@ -27,9 +27,10 @@ export const useCreateInsurance = () => {
 
   return useMutation({
     mutationFn: async (payload: CreateInsuranceRequest): Promise<InsurancePolicy> => {
+      const { patientId, ...insuranceData } = payload;
       const response = await api.post<ApiResponse<InsurancePolicy>>(
-        `/patients/${payload.patientId}/insurances`,
-        payload
+        `/patients/${patientId}/insurances`,
+        insuranceData
       );
       return response.data.data;
     },
