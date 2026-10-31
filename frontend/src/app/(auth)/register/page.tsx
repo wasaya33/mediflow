@@ -98,25 +98,29 @@ export default function RegisterPage() {
     },
   });
 
-  const handleOrgNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    form.setValue("orgName", val);
-    // Auto-generate slug suggestion if not manually customized yet
-    const currentSlug = form.getValues("orgSlug");
-    if (!currentSlug || currentSlug === slugify(form.getValues("orgName"))) {
-      form.setValue("orgSlug", slugify(val), { shouldValidate: true });
-    }
-  };
-
   const slugify = (text: string) => {
     return text
       .toString()
       .toLowerCase()
       .trim()
       .replace(/\s+/g, "-") // Replace spaces with -
-      .replace(/[^\w\-]+/g, "") // Remove all non-word chars
-      .replace(/\-\-+/g, "-") // Replace multiple - with single -
+      .replace(/[^a-z0-9-]+/g, "") // Remove non-alphanumeric chars (excluding hyphens)
+      .replace(/-+/g, "-") // Replace consecutive hyphens
+      .replace(/^-+|-+$/g, "") // Trim leading/trailing hyphens
       .slice(0, 50);
+  };
+
+  const handleOrgNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    const prevVal = form.getValues("orgName");
+    const prevAutoSlug = slugify(prevVal);
+    const currentSlug = form.getValues("orgSlug");
+
+    form.setValue("orgName", val, { shouldValidate: true });
+    // Auto-generate slug suggestion if not manually customized yet
+    if (!currentSlug || currentSlug === prevAutoSlug) {
+      form.setValue("orgSlug", slugify(val), { shouldValidate: true });
+    }
   };
 
   const onSubmit = (data: RegisterFormValues) => {

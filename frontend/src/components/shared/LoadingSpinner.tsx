@@ -24,6 +24,8 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
 }) => {
   const content = (
     <div
+      role="status"
+      aria-live="polite"
       className={cn(
         "flex flex-col items-center justify-center gap-3 text-slate-600",
         className
@@ -35,6 +37,7 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
           sizeClasses[size]
         )}
       />
+      <span className="sr-only">Loading...</span>
       {label && (
         <p className="text-sm font-medium text-slate-600 animate-pulse">
           {label}
