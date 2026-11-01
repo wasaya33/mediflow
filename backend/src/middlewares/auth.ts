@@ -57,8 +57,8 @@ function extractToken(req: Request): string | null {
 // Auth Middleware
 // ---------------------------------------------------------------------------
 
-// Temporary development bypass switch (set to true to bypass auth)
-export const AUTH_BYPASS_ENABLED = true;
+// Keep the temporary authentication bypass out of production.
+export const AUTH_BYPASS_ENABLED = env.NODE_ENV === "development";
 
 export const DEV_BYPASS_USER: AuthUser = {
   userId: "65f000000000000000000001",
