@@ -67,7 +67,7 @@ mediflow/
 │   ├── .env.example
 │   ├── package.json
 │   └── tsconfig.json
-├── frontend/                   # Client application (Next.js / Vite)
+├── frontend/                   # Client application (Next.js)
 └── README.md
 ```
 
