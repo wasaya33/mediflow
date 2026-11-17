@@ -120,6 +120,9 @@ export const PAGINATION = {
 /** Base path prefix for all API routes */
 export const API_PREFIX = "/api" as const;
 
+/** Correlation ID header, accepted from clients and echoed on every response */
+export const REQUEST_ID_HEADER = "X-Request-Id" as const;
+
 // ---------------------------------------------------------------------------
 // Token & Session
 // ---------------------------------------------------------------------------

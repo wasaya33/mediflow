@@ -135,16 +135,21 @@ export function errorHandler(
     logger.error(`[${req.method}] ${req.path} → 500 Unhandled Error:`, err);
   }
 
+  const { requestId } = req;
+
   // --- Log the error ---
   if (appError.statusCode >= 500 || !appError.isOperational) {
     // Log full details for server errors
     logger.error(`[${req.method}] ${req.path} → ${appError.statusCode}`, {
+      requestId,
       message: appError.message,
       stack: appError.stack,
     });
   } else {
     // Log brief info for client errors
-    logger.warn(`[${req.method}] ${req.path} → ${appError.statusCode}: ${appError.message}`);
+    logger.warn(`[${req.method}] ${req.path} → ${appError.statusCode}: ${appError.message}`, {
+      requestId,
+    });
   }
 
   // --- Build response body ---
@@ -152,6 +157,7 @@ export function errorHandler(
     success: boolean;
     message: string;
     statusCode: number;
+    requestId?: string;
     errors?: Record<string, string[]>;
     stack?: string;
   } = {
@@ -159,6 +165,11 @@ export function errorHandler(
     message: appError.message,
     statusCode: appError.statusCode,
   };
+
+  // Include the correlation ID so clients can reference it in support requests
+  if (requestId) {
+    responseBody.requestId = requestId;
+  }
 
   // Include field-level errors for ValidationError
   if (appError instanceof ValidationError && Object.keys(appError.errors).length > 0) {

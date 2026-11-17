@@ -1,7 +1,7 @@
 /**
  * Express Request interface extension for MediFlow.
  * Augments the default Express.Request type with our custom properties
- * so TypeScript knows about req.user and req.organizationId.
+ * so TypeScript knows about req.user, req.organizationId, and req.requestId.
  *
  * This file is automatically picked up by TypeScript because it's in the
  * `typeRoots` path defined in tsconfig.json.
@@ -24,6 +24,12 @@ declare global {
        * Undefined if user is not in an organization (e.g., PLATFORM_ADMIN).
        */
       organizationId?: string;
+
+      /**
+       * Correlation ID for this request, set by the `requestContext` middleware.
+       * Echoed in the `X-Request-Id` response header and included in logs.
+       */
+      requestId?: string;
     }
   }
 }

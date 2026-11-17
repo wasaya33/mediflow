@@ -4,10 +4,10 @@
  * middleware in the correct order, routes, and error handlers.
  *
  * MIDDLEWARE ORDER (important — do not reorder):
- * 1. Security (helmet, cors)
- * 2. Body parsing
- * 3. Cookie parsing
- * 4. Request logging
+ * 1. Request context (correlation ID + request logging)
+ * 2. Security (helmet, cors)
+ * 3. Body parsing
+ * 4. Cookie parsing
  * 5. Routes
  * 6. 404 handler
  * 7. Global error handler (MUST be last)
@@ -18,9 +18,9 @@ import helmet from "helmet";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import { env } from "./config/env";
-import { API_PREFIX } from "./config/constants";
+import { API_PREFIX, REQUEST_ID_HEADER } from "./config/constants";
 import { errorHandler } from "./middlewares/errorHandler";
-import { logger } from "./shared/utils/logger";
+import { requestContext } from "./middlewares/requestContext";
 import { NotFoundError } from "./shared/errors/AppError";
 import authRoutes from "./modules/auth/routes";
 import organizationRoutes from "./modules/organizations/routes";
@@ -32,6 +32,17 @@ import appointmentRoutes from "./modules/appointments/routes";
 import encounterRoutes from "./modules/encounters/routes";
 
 const app = express();
+
+// ---------------------------------------------------------------------------
+// Request Context
+// ---------------------------------------------------------------------------
+
+/**
+ * Assign a correlation ID (X-Request-Id) to every request and log its
+ * arrival and completion (status code + duration). Registered first so that
+ * every subsequent log line and error response can reference the ID.
+ */
+app.use(requestContext);
 
 // ---------------------------------------------------------------------------
 // Security Middleware
@@ -46,6 +57,7 @@ app.use(helmet());
 /**
  * CORS: Allows requests only from the configured FRONTEND_URL.
  * - credentials: true allows cookies and Authorization headers
+ * - X-Request-Id is accepted from and exposed to the browser for tracing
  * - Adjust methods/headers as needed when adding more complex flows
  */
 app.use(
@@ -58,7 +70,9 @@ app.use(
       "Authorization",
       "X-Requested-With",
       "Accept",
+      REQUEST_ID_HEADER,
     ],
+    exposedHeaders: [REQUEST_ID_HEADER],
   })
 );
 
@@ -81,22 +95,6 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
  * Signed cookies are used for refresh tokens to prevent tampering.
  */
 app.use(cookieParser(env.COOKIE_SECRET));
-
-// ---------------------------------------------------------------------------
-// Request Logging Middleware
-// ---------------------------------------------------------------------------
-
-/**
- * Log every incoming HTTP request with method, URL, and timestamp.
- * In production, consider replacing with a structured HTTP logger (e.g., morgan).
- */
-app.use((req: Request, _res: Response, next: NextFunction) => {
-  logger.info(`→ ${req.method} ${req.url}`, {
-    ip: req.ip,
-    userAgent: req.get("user-agent"),
-  });
-  next();
-});
 
 // ---------------------------------------------------------------------------
 // Application Routes
