@@ -6,6 +6,7 @@
  * - AppError subclasses (operational errors) → use their statusCode
  * - Prisma-specific errors → mapped to appropriate HTTP codes
  * - ZodError → 400 with field-level details
+ * - Request body parsing errors (malformed JSON, oversized payloads) → 4xx
  * - Generic errors → 500 Internal Server Error
  * - Stack trace only included in development mode
  */
@@ -89,6 +90,57 @@ function handleZodError(err: ZodError): ValidationError {
 }
 
 // ---------------------------------------------------------------------------
+// Body Parser Error Mapper
+// ---------------------------------------------------------------------------
+
+/**
+ * Shape of errors raised by Express's built-in body parsers
+ * (express.json / express.urlencoded). They are created with `http-errors`
+ * and carry a client-error status plus a machine-readable `type`.
+ */
+interface BodyParserError extends Error {
+  status: number;
+  type: string;
+  expose: boolean;
+}
+
+/** Client-facing messages for the most common body parsing failures */
+const BODY_PARSER_MESSAGES: Record<string, string> = {
+  "entity.parse.failed": "Malformed request body. Please send valid JSON.",
+  "entity.too.large": "Request body is too large.",
+  "charset.unsupported": "Unsupported request body charset.",
+  "encoding.unsupported": "Unsupported request body encoding.",
+  "request.aborted": "The request was aborted before the body was received.",
+};
+
+/**
+ * Type guard for body parser errors. Only matches errors explicitly marked
+ * safe to expose (`expose: true`) with a 4xx status, so server-side failures
+ * still fall through to the generic 500 handler.
+ */
+function isBodyParserError(err: unknown): err is BodyParserError {
+  if (!(err instanceof Error)) return false;
+
+  const candidate = err as Partial<BodyParserError>;
+  return (
+    typeof candidate.type === "string" &&
+    typeof candidate.status === "number" &&
+    candidate.status >= 400 &&
+    candidate.status < 500 &&
+    candidate.expose === true
+  );
+}
+
+/**
+ * Converts a body parser error into an AppError, preserving its HTTP status
+ * (e.g., 400 malformed JSON, 413 payload too large, 415 unsupported charset).
+ */
+function handleBodyParserError(err: BodyParserError): AppError {
+  const message = BODY_PARSER_MESSAGES[err.type] ?? err.message;
+  return new AppError(message, err.status);
+}
+
+// ---------------------------------------------------------------------------
 // Global Error Handler Middleware
 // ---------------------------------------------------------------------------
 
@@ -125,6 +177,9 @@ export function errorHandler(
     // Prisma connection error
     appError = new AppError("Database connection failed.", 503);
     logger.error("Prisma initialization error", err.message);
+  } else if (isBodyParserError(err)) {
+    // Malformed JSON, oversized payload, unsupported charset, etc.
+    appError = handleBodyParserError(err);
   } else {
     // Unknown / programmer error — default to 500
     appError = new AppError(
