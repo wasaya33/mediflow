@@ -121,3 +121,52 @@ export async function disconnectDB(): Promise<void> {
     throw error;
   }
 }
+
+// ---------------------------------------------------------------------------
+// Health Check
+// ---------------------------------------------------------------------------
+
+/** Maximum time a readiness probe waits for MongoDB before reporting "down" */
+const DB_HEALTH_TIMEOUT_MS = 3_000;
+
+/** Result of a database health probe */
+export interface DatabaseHealth {
+  status: "up" | "down";
+  /** Round-trip time of the probe in milliseconds */
+  latencyMs: number;
+}
+
+/**
+ * Check database availability by sending a lightweight `ping` command.
+ * Never throws: failures and timeouts are reported as `status: "down"` and
+ * logged server-side, so connection details are never exposed to clients.
+ *
+ * @param timeoutMs - Maximum time to wait for a response (default: 3s)
+ * @returns The database status and probe latency
+ */
+export async function checkDatabaseHealth(
+  timeoutMs: number = DB_HEALTH_TIMEOUT_MS
+): Promise<DatabaseHealth> {
+  const startedAt = Date.now();
+  let timer: NodeJS.Timeout | undefined;
+
+  const timeout = new Promise<never>((_resolve, reject) => {
+    timer = setTimeout(
+      () => reject(new Error(`Database ping timed out after ${timeoutMs}ms`)),
+      timeoutMs
+    );
+    timer.unref();
+  });
+
+  try {
+    await Promise.race([prisma.$runCommandRaw({ ping: 1 }), timeout]);
+    return { status: "up", latencyMs: Date.now() - startedAt };
+  } catch (error) {
+    logger.warn("Database health check failed", {
+      reason: error instanceof Error ? error.message : String(error),
+    });
+    return { status: "down", latencyMs: Date.now() - startedAt };
+  } finally {
+    clearTimeout(timer);
+  }
+}

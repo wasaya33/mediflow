@@ -18,6 +18,7 @@ import helmet from "helmet";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import { env } from "./config/env";
+import { checkDatabaseHealth } from "./config/db";
 import { API_PREFIX, REQUEST_ID_HEADER } from "./config/constants";
 import { errorHandler } from "./middlewares/errorHandler";
 import { requestContext } from "./middlewares/requestContext";
@@ -101,7 +102,7 @@ app.use(cookieParser(env.COOKIE_SECRET));
 // ---------------------------------------------------------------------------
 
 /**
- * Health Check Endpoint
+ * Health Check Endpoint (liveness)
  * Used by load balancers, container orchestrators, and monitoring tools
  * to verify the service is running.
  *
@@ -114,6 +115,28 @@ app.get(`${API_PREFIX}/health`, (_req: Request, res: Response) => {
     timestamp: new Date().toISOString(),
     environment: env.NODE_ENV,
     version: process.env["npm_package_version"] ?? "1.0.0",
+  });
+});
+
+/**
+ * Readiness Check Endpoint
+ * Verifies that downstream dependencies (MongoDB) are reachable, so
+ * orchestrators only route traffic to instances that can serve requests.
+ * Returns 200 when ready and 503 when a dependency is unavailable.
+ *
+ * GET /api/health/ready
+ */
+app.get(`${API_PREFIX}/health/ready`, async (_req: Request, res: Response) => {
+  const database = await checkDatabaseHealth();
+  const isReady = database.status === "up";
+
+  res.status(isReady ? 200 : 503).json({
+    success: isReady,
+    message: isReady
+      ? "MediFlow API is ready"
+      : "MediFlow API is not ready: database unavailable",
+    timestamp: new Date().toISOString(),
+    checks: { database },
   });
 });
 

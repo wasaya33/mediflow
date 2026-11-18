@@ -94,6 +94,7 @@ The schema defines **19 models** and **6 enums** optimized for MongoDB:
 | :--- | :--- | :--- | :--- |
 | `GET` | `/` | Public | Welcome endpoint with service links |
 | `GET` | `/api/health` | Public | Service health check with timestamp & environment |
+| `GET` | `/api/health/ready` | Public | Readiness check — pings MongoDB; returns `503` if unavailable |
 
 ### Authentication (`/api/auth`)
 | Method | Endpoint | Access | Description |
