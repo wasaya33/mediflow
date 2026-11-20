@@ -21,15 +21,19 @@ The app runs on [http://localhost:3000](http://localhost:3000).
 | Variable              | Default                     | Description               |
 | :-------------------- | :-------------------------- | :------------------------ |
 | `NEXT_PUBLIC_API_URL` | `http://localhost:5000/api` | Base URL of the MediFlow API |
+| `NEXT_PUBLIC_AUTH_BYPASS` | _(unset)_ | Set to `false` to disable the development auth bypass |
 
 Put local overrides in `.env.local`. It is git-ignored.
 
 ### Development auth bypass
 
-`BYPASS_AUTH` is currently hard-coded to `true` in
-`src/providers/AuthProvider.tsx`, `src/components/providers/ProtectedRoute.tsx`,
-and `src/lib/api.ts`, and the auth store falls back to a demo user. Set these
-to `false` to test real login and session verification against the API.
+Under `npm run dev`, the app skips login and signs you in as a demo
+`PLATFORM_ADMIN` user, matching the backend's development bypass. The switch
+lives in `src/lib/authBypass.ts`.
+
+Production builds (`npm run build`) always enforce authentication. To test
+the real login and session flow locally, set `NEXT_PUBLIC_AUTH_BYPASS=false`
+in `.env.local` and restart the dev server.
 
 ## Scripts
 

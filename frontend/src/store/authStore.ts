@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { User } from "@/types";
+import { AUTH_BYPASS_ENABLED } from "@/lib/authBypass";
 
 interface AuthState {
   user: User | null;
@@ -47,10 +48,10 @@ export const DEV_BYPASS_TOKEN = "dev-bypass-token";
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
-      user: DEV_BYPASS_USER,
-      token: DEV_BYPASS_TOKEN,
-      isAuthenticated: true,
-      isLoading: false,
+      user: AUTH_BYPASS_ENABLED ? DEV_BYPASS_USER : null,
+      token: AUTH_BYPASS_ENABLED ? DEV_BYPASS_TOKEN : null,
+      isAuthenticated: AUTH_BYPASS_ENABLED,
+      isLoading: !AUTH_BYPASS_ENABLED,
 
       setAuth: (user: User, token: string) =>
         set({
@@ -98,7 +99,7 @@ export const useAuthStore = create<AuthState>()(
       }),
       onRehydrateStorage: () => (state) => {
         if (state) {
-          if (!state.user || !state.token) {
+          if (AUTH_BYPASS_ENABLED && (!state.user || !state.token)) {
             state.user = DEV_BYPASS_USER;
             state.token = DEV_BYPASS_TOKEN;
             state.isAuthenticated = true;
