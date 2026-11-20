@@ -59,6 +59,22 @@ const envSchema = z.object({
   COOKIE_SECRET: z
     .string()
     .min(32, "COOKIE_SECRET must be at least 32 characters long for security"),
+
+  /**
+   * Express "trust proxy" setting. Leave unset when clients reach the API
+   * directly. Behind a reverse proxy or load balancer, set it to the number
+   * of proxy hops (usually 1) so req.ip — and therefore rate limiting —
+   * reflects the real client IP. Also accepts "true" or an IP/subnet list.
+   */
+  TRUST_PROXY: z
+    .string()
+    .optional()
+    .transform((val): boolean | number | string => {
+      if (val === undefined || val === "" || val === "false") return false;
+      if (val === "true") return true;
+      if (/^\d+$/.test(val)) return Number(val);
+      return val;
+    }),
 });
 
 /** Inferred TypeScript type from the validated schema */

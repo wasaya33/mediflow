@@ -3,6 +3,7 @@ import { authController } from "./controller";
 import { validate } from "../../middlewares/validate";
 import { auth } from "../../middlewares/auth";
 import { asyncHandler } from "../../middlewares/asyncHandler";
+import { loginRateLimiter, registerRateLimiter } from "../../middlewares/rateLimiter";
 import {
   registerSchema,
   loginSchema,
@@ -12,9 +13,9 @@ import {
 
 const router = Router();
 
-// Public routes
-router.post("/register", validate({ body: registerSchema }), asyncHandler(authController.register));
-router.post("/login", validate({ body: loginSchema }), asyncHandler(authController.login));
+// Public routes (rate limited per client IP)
+router.post("/register", registerRateLimiter, validate({ body: registerSchema }), asyncHandler(authController.register));
+router.post("/login", loginRateLimiter, validate({ body: loginSchema }), asyncHandler(authController.login));
 
 // Protected routes (any authenticated user)
 router.get("/me", auth, asyncHandler(authController.getMe));

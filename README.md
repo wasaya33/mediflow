@@ -28,6 +28,7 @@ MediFlow is a cloud-native, multi-tenant SaaS medical billing and revenue cycle 
   - Passwords strictly omitted from all query projections and API responses.
   - Immutable `AuditLog` records for all mutations, logins, and profile changes.
   - HTTP security headers via `helmet` and strict CORS configuration.
+  - Per-IP rate limiting on public auth endpoints: 10 failed logins per 15 minutes and 5 registrations per hour (`429` with `Retry-After`).
 - **Standardized API Responses**: Uniform envelope format across all endpoints (`{ success, message, data, meta? }`).
 
 ---
@@ -162,6 +163,10 @@ JWT_EXPIRES_IN="7d"
 FRONTEND_URL="http://localhost:3000"
 BCRYPT_SALT_ROUNDS=10
 COOKIE_SECRET="your-cookie-secret-min-32-chars-long-change-in-prod"
+
+# Optional: number of reverse-proxy hops in front of the API (e.g. 1 behind
+# Nginx or a load balancer). Required for accurate per-client rate limiting.
+# TRUST_PROXY=1
 ```
 
 ### 4. Database Setup & Seeding
