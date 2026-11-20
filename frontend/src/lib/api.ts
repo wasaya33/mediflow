@@ -1,5 +1,6 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 import { useAuthStore } from "@/store/authStore";
+import { AUTH_BYPASS_ENABLED } from "@/lib/authBypass";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
@@ -26,8 +27,6 @@ api.interceptors.request.use(
   }
 );
 
-const BYPASS_AUTH = true;
-
 // Response interceptor to handle 401 Unauthorized errors
 api.interceptors.response.use(
   (response) => {
@@ -35,7 +34,7 @@ api.interceptors.response.use(
   },
   (error: AxiosError) => {
     if (error.response?.status === 401) {
-      if (BYPASS_AUTH) {
+      if (AUTH_BYPASS_ENABLED) {
         console.warn("[Auth Bypass] 401 received from backend - redirect skipped.");
         return Promise.reject(error);
       }

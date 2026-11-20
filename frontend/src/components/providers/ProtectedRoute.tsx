@@ -3,14 +3,12 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
+import { AUTH_BYPASS_ENABLED } from "@/lib/authBypass";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
 }
-
-// Development bypass switch: set to false to re-enable strict route protection
-const BYPASS_AUTH = true;
 
 /**
  * ProtectedRoute component enforces authentication before rendering dashboard contents.
@@ -27,7 +25,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    if (BYPASS_AUTH) return;
+    if (AUTH_BYPASS_ENABLED) return;
     if (hasMounted && !isLoading) {
       if (!token || !isAuthenticated) {
         router.replace("/login");
@@ -35,7 +33,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     }
   }, [hasMounted, isLoading, token, isAuthenticated, router]);
 
-  if (BYPASS_AUTH) {
+  if (AUTH_BYPASS_ENABLED) {
     return <>{children}</>;
   }
 

@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useAuthStore } from "@/store/authStore";
 import { api } from "@/lib/api";
+import { AUTH_BYPASS_ENABLED } from "@/lib/authBypass";
 import { ApiResponse, User } from "@/types";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 
@@ -10,12 +11,9 @@ interface AuthProviderProps {
   children: React.ReactNode;
 }
 
-// Development bypass switch: set to false to re-enable strict session verification
-const BYPASS_AUTH = true;
-
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const { token, setUser, setLoading } = useAuthStore();
-  const [isVerifying, setIsVerifying] = useState<boolean>(!BYPASS_AUTH);
+  const [isVerifying, setIsVerifying] = useState<boolean>(!AUTH_BYPASS_ENABLED);
 
   useEffect(() => {
     let isMounted = true;
@@ -38,7 +36,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setUser(response.data.data);
         }
       } catch {
-        if (isMounted && !BYPASS_AUTH) {
+        if (isMounted && !AUTH_BYPASS_ENABLED) {
           useAuthStore.getState().logout();
         }
       } finally {
@@ -56,7 +54,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
   }, [token, setUser, setLoading]);
 
-  if (isVerifying && !BYPASS_AUTH) {
+  if (isVerifying && !AUTH_BYPASS_ENABLED) {
     return (
       <LoadingSpinner
         fullScreen
