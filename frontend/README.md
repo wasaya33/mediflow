@@ -1,36 +1,61 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MediFlow Frontend
 
-## Getting Started
+Web client for MediFlow, built with Next.js 14 (App Router), TypeScript,
+Tailwind CSS, and shadcn/ui components.
 
-First, run the development server:
+## Getting started
+
+The frontend talks to the MediFlow API in [`../backend`](../backend). Start the
+backend first (see the [root README](../README.md)), then:
 
 ```bash
+cd frontend
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The app runs on [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Environment
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Variable              | Default                     | Description               |
+| :-------------------- | :-------------------------- | :------------------------ |
+| `NEXT_PUBLIC_API_URL` | `http://localhost:5000/api` | Base URL of the MediFlow API |
 
-## Learn More
+Put local overrides in `.env.local`. It is git-ignored.
 
-To learn more about Next.js, take a look at the following resources:
+### Development auth bypass
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+`BYPASS_AUTH` is currently hard-coded to `true` in
+`src/providers/AuthProvider.tsx`, `src/components/providers/ProtectedRoute.tsx`,
+and `src/lib/api.ts`, and the auth store falls back to a demo user. Set these
+to `false` to test real login and session verification against the API.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Scripts
 
-## Deploy on Vercel
+| Command         | Description                                   |
+| :-------------- | :-------------------------------------------- |
+| `npm run dev`   | Start the development server with hot reload  |
+| `npm run build` | Create a production build (also runs ESLint and type checks) |
+| `npm run start` | Serve the production build                    |
+| `npm run lint`  | Run ESLint                                    |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Project structure
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```text
+src/
+├── app/
+│   ├── (auth)/         # Login and registration pages
+│   └── (dashboard)/    # Authenticated pages: patients, providers,
+│                       # appointments, encounters, claims, settings, ...
+├── components/
+│   ├── ui/             # shadcn/ui primitives
+│   ├── layout/         # Header, sidebar, breadcrumbs
+│   ├── forms/          # Entity forms (patient, provider, appointment, ...)
+│   └── shared/         # Reusable building blocks (tables, badges, empty states)
+├── hooks/              # React Query hooks per API resource
+├── lib/                # Axios API client and utilities
+├── providers/          # App-level React providers (auth, React Query)
+├── store/              # Zustand stores
+└── types/              # Shared TypeScript types
+```

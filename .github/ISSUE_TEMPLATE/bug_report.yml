@@ -1,0 +1,45 @@
+name: Bug report
+description: Report something that is broken or behaves unexpectedly
+title: "fix: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: >
+        Do not include real patient data, credentials, or tokens in this
+        report. Use seed or obviously fake data.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Backend API
+        - Frontend
+        - Database / Prisma
+        - Auth / RBAC
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: What did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Log in as ORG_ADMIN
+        2. Go to /patients
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or error output
+      description: Include the X-Request-Id from the API response if available.
+      render: shell
