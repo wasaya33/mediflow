@@ -14,7 +14,7 @@ interface AuthProviderProps {
 const BYPASS_AUTH = true;
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const { token, user, setUser, setLoading } = useAuthStore();
+  const { token, setUser, setLoading } = useAuthStore();
   const [isVerifying, setIsVerifying] = useState<boolean>(!BYPASS_AUTH);
 
   useEffect(() => {
