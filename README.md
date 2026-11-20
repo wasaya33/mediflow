@@ -50,12 +50,18 @@ mediflow/
 │   │   │   ├── auth.ts         # JWT Bearer token authentication
 │   │   │   ├── errorHandler.ts # Global 4-parameter error handler (Prisma + Zod + AppError)
 │   │   │   ├── rbac.ts         # authorize() & requireRoles() RBAC middleware
+│   │   │   ├── requestContext.ts # Request correlation IDs & response-time logging
 │   │   │   ├── tenant.ts       # Tenant context extraction & verification
 │   │   │   └── validate.ts     # Zod request validator (body, query, params)
 │   │   ├── modules/
 │   │   │   ├── auth/           # Registration, login, profile, password change
 │   │   │   ├── organizations/  # Tenant profile, settings, operational counts
-│   │   │   └── users/          # Tenant-isolated user management & soft deactivation
+│   │   │   ├── users/          # Tenant-isolated user management & soft deactivation
+│   │   │   ├── patients/       # Patient records, MRNs & statistics
+│   │   │   ├── providers/      # Provider records & NPI tracking
+│   │   │   ├── insurance/      # Patient insurance policies
+│   │   │   ├── appointments/   # Appointment scheduling
+│   │   │   └── encounters/     # Clinical encounters
 │   │   ├── shared/
 │   │   │   ├── errors/         # AppError hierarchy (400, 401, 403, 404, 409)
 │   │   │   ├── types/          # Shared TypeScript interfaces & pagination types
