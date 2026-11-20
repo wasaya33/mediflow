@@ -34,6 +34,12 @@ import encounterRoutes from "./modules/encounters/routes";
 
 const app = express();
 
+/**
+ * Resolve the real client IP (req.ip) when deployed behind a reverse proxy.
+ * Rate limiting depends on this; see TRUST_PROXY in config/env.ts.
+ */
+app.set("trust proxy", env.TRUST_PROXY);
+
 // ---------------------------------------------------------------------------
 // Request Context
 // ---------------------------------------------------------------------------
