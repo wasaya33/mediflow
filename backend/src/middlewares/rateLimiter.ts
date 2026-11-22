@@ -26,13 +26,17 @@ function forwardTooManyRequests(message: string): Options["handler"] {
 
 /**
  * Login: at most 10 failed attempts per IP every 15 minutes.
+ * Only client errors (4xx, e.g. wrong password) count as failed attempts.
  * Successful logins are not counted, so users are never locked out by
- * their own valid sign-ins.
+ * their own valid sign-ins, and neither are server errors (5xx), so a
+ * database outage doesn't lock users out once the service recovers.
  */
 export const loginRateLimiter = rateLimit({
   windowMs: FIFTEEN_MINUTES_MS,
   limit: 10,
   skipSuccessfulRequests: true,
+  requestWasSuccessful: (_req, res) =>
+    res.statusCode < 400 || res.statusCode >= 500,
   standardHeaders: "draft-8",
   legacyHeaders: false,
   handler: forwardTooManyRequests(
