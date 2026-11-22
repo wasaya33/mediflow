@@ -17,6 +17,17 @@ import {
 } from "./validation";
 import { AUTH_BYPASS_ENABLED, DEV_BYPASS_USER } from "../../middlewares/auth";
 
+/**
+ * Hash compared against when a login email is not registered, so that path
+ * costs the same bcrypt work as a wrong password. Without it, unknown emails
+ * fail measurably faster and response timing reveals which emails have
+ * accounts. Computed once at startup with the same cost factor as real hashes.
+ */
+const dummyPasswordHash = bcrypt.hash(
+  "mediflow-timing-equalizer",
+  env.BCRYPT_SALT_ROUNDS
+);
+
 export class AuthService {
   /**
    * Register a new Organization and its initial ORG_ADMIN user.
@@ -175,6 +186,8 @@ export class AuthService {
           token,
         };
       }
+      // Spend the same bcrypt time as the wrong-password path (see dummyPasswordHash)
+      await bcrypt.compare(data.password, await dummyPasswordHash);
       throw new UnauthorizedError("Invalid email or password.");
     }
 
