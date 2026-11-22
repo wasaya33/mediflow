@@ -150,8 +150,11 @@ export class AuthService {
           organization: true,
         },
       });
-    } catch {
-      // DB offline or error
+    } catch (error) {
+      // Only the development bypass below can log in without a database.
+      // Anywhere else, surface the failure (503/500 via the error handler)
+      // rather than telling the user their credentials are wrong.
+      if (!AUTH_BYPASS_ENABLED) throw error;
     }
 
     if (!user) {
@@ -300,8 +303,10 @@ export class AuthService {
       if (user) {
         return user;
       }
-    } catch {
-      // DB offline or query error
+    } catch (error) {
+      // Only the development bypass below can serve a profile without a
+      // database. Anywhere else, surface the failure instead of a 404.
+      if (!AUTH_BYPASS_ENABLED) throw error;
     }
 
     if (AUTH_BYPASS_ENABLED) {
