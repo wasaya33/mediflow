@@ -135,3 +135,9 @@ export const AUTH_HEADER = "Authorization" as const;
 
 /** Bearer token prefix in Authorization header */
 export const BEARER_PREFIX = "Bearer " as const;
+
+/**
+ * The only algorithm access tokens are signed and verified with
+ * (HMAC-SHA256 using JWT_SECRET). Verification rejects any other `alg`.
+ */
+export const JWT_ALGORITHM = "HS256" as const;

@@ -14,7 +14,13 @@ import jwt from "jsonwebtoken";
 import { env } from "../config/env";
 import { UnauthorizedError } from "../shared/errors/AppError";
 import { AuthUser } from "../shared/types";
-import { BEARER_PREFIX, AUTH_HEADER, Role, ROLES } from "../config/constants";
+import {
+  BEARER_PREFIX,
+  AUTH_HEADER,
+  JWT_ALGORITHM,
+  Role,
+  ROLES,
+} from "../config/constants";
 
 // ---------------------------------------------------------------------------
 // JWT Payload Interface
@@ -93,7 +99,9 @@ export function auth(req: Request, _res: Response, next: NextFunction): void {
   }
 
   try {
-    const decoded = jwt.verify(token, env.JWT_SECRET) as JwtPayload;
+    const decoded = jwt.verify(token, env.JWT_SECRET, {
+      algorithms: [JWT_ALGORITHM],
+    }) as JwtPayload;
 
     // Validate that required fields are present in the payload
     if (!decoded.userId || !decoded.organizationId || !decoded.role || !decoded.email) {
@@ -154,7 +162,9 @@ export function optionalAuth(
   }
 
   try {
-    const decoded = jwt.verify(token, env.JWT_SECRET) as JwtPayload;
+    const decoded = jwt.verify(token, env.JWT_SECRET, {
+      algorithms: [JWT_ALGORITHM],
+    }) as JwtPayload;
 
     if (decoded.userId && decoded.organizationId && decoded.role && decoded.email) {
       req.user = {

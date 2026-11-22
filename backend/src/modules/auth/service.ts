@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import { UserRole } from "@prisma/client";
 import { prisma } from "../../config/db";
 import { env } from "../../config/env";
+import { JWT_ALGORITHM } from "../../config/constants";
 import {
   ConflictError,
   UnauthorizedError,
@@ -121,7 +122,10 @@ export class AuthService {
         email: user.email,
       },
       env.JWT_SECRET,
-      { expiresIn: env.JWT_EXPIRES_IN as jwt.SignOptions["expiresIn"] }
+      {
+        algorithm: JWT_ALGORITHM,
+        expiresIn: env.JWT_EXPIRES_IN as jwt.SignOptions["expiresIn"],
+      }
     );
 
     return {
@@ -167,7 +171,10 @@ export class AuthService {
             email: normalizedEmail || DEV_BYPASS_USER.email,
           },
           env.JWT_SECRET,
-          { expiresIn: env.JWT_EXPIRES_IN as jwt.SignOptions["expiresIn"] }
+          {
+            algorithm: JWT_ALGORITHM,
+            expiresIn: env.JWT_EXPIRES_IN as jwt.SignOptions["expiresIn"],
+          }
         );
         return {
           user: {
@@ -241,7 +248,10 @@ export class AuthService {
         email: user.email,
       },
       env.JWT_SECRET,
-      { expiresIn: env.JWT_EXPIRES_IN as jwt.SignOptions["expiresIn"] }
+      {
+        algorithm: JWT_ALGORITHM,
+        expiresIn: env.JWT_EXPIRES_IN as jwt.SignOptions["expiresIn"],
+      }
     );
 
     return {
